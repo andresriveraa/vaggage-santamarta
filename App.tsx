@@ -5,14 +5,17 @@
  * @format
  */
 import React from 'react';
-import {SafeAreaView } from 'react-native';
-import Login from './src/components/login/Login';
+import {SafeAreaView} from 'react-native';
+// import Login from './src/components/login/Login';
+import {NavigationContainer} from '@react-navigation/native';
 
 function App(): React.JSX.Element {
   return (
-    <SafeAreaView>
-      <Login />
-    </SafeAreaView>
+    <NavigationContainer>
+      <SafeAreaView>
+        {/* <Login /> */}
+      </SafeAreaView>
+    </NavigationContainer>
   );
 }
 
