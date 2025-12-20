@@ -54,13 +54,13 @@ export const stylesApp = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
     marginBottom: 20,
-    
   },
+  locationMap: { width: '100%', height: 350, borderRadius: 8, overflow: 'hidden' },
   header: {
     backgroundColor: colors.green.background,
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 80,
+    marginBottom: 40,
     color: 'white',
   },
   status: {

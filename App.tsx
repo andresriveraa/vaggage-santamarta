@@ -8,6 +8,7 @@ import React from 'react';
 import {View, Text, Image, Pressable} from 'react-native';
 import useMainHook, {WATCH_ID_INITIAL} from './useMain';
 import {stylesApp} from './App.style';
+import LocationsMap from './src/components/map/LocationsMap';
 
 function App(): React.JSX.Element {
   const {state, actions} = useMainHook();
@@ -36,25 +37,22 @@ function App(): React.JSX.Element {
         </Pressable>
       )}
 
-      <View style={stylesApp.dataContainer}>
-        <Text style={stylesApp.subheader}>Última Posición Registrada:</Text>
+      <View style={stylesApp.locationMap}>
+        <LocationsMap currentPosition={state.currentPosition ?? undefined} />
+      </View>
 
+      {/* <View style={stylesApp.dataContainer}>
         {state.currentPosition ? (
-          <>
-           <Text>
-            {state.appState}
-           </Text>
-          </>
         ) : (
           <Text style={stylesApp.dataText}>
             Esperando datos de ubicación...
           </Text>
-        )}
+        )} */}
 
-        {state.error && (
+        {/* {state.error && (
           <Text style={stylesApp.errorText}>⚠️ Error: {state.error}</Text>
         )}
-      </View>
+      </View> */}
     </View>
   );
 }
