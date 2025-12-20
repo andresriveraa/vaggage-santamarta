@@ -1,0 +1,101 @@
+import {StyleSheet} from 'react-native';
+import colors from './src/constants/colors';
+
+export const stylesApp = StyleSheet.create({
+  container: {
+    flex: 1,
+    // justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 120,
+    padding: 16,
+    backgroundColor: colors.green.background,
+    color: 'white',
+  },
+  logo: {
+    width: 80,
+    height: 80,
+  },
+  startButton: {
+    backgroundColor: colors.green.textSecondary,
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingLeft: 32,
+    paddingRight: 32,
+    borderRadius: 10,
+    borderColor: 'transparent',
+    marginTop: 30,
+    marginBottom: 30,
+  },
+  textStartButton: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  endButton: {
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingLeft: 32,
+    paddingRight: 32,
+    borderRadius: 10,
+    borderColor: 'transparent',
+    backgroundColor: 'red',
+    color: 'white',
+    borderCurve: 'circular',
+    marginTop: 30,
+    marginBottom: 30,
+  },
+  textEndButton: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  text: {
+    fontSize: 16,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 20,
+    
+  },
+  header: {
+    backgroundColor: colors.green.background,
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 80,
+    color: 'white',
+  },
+  status: {
+    marginTop: 20,
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  dataContainer: {
+    marginTop: 30,
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  subheader: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 5,
+  },
+  dataText: {
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  errorText: {
+    fontSize: 14,
+    marginTop: 10,
+    color: 'red',
+    fontWeight: 'bold',
+  },
+});
