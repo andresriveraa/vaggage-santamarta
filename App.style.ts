@@ -1,67 +1,114 @@
-import {StyleSheet} from 'react-native';
+import {StyleSheet, Dimensions, Platform} from 'react-native';
 import colors from './src/constants/colors';
+
+const {width, height} = Dimensions.get('window');
 
 export const stylesApp = StyleSheet.create({
   container: {
     flex: 1,
-    // justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 120,
-    padding: 16,
     backgroundColor: colors.green.background,
-    color: 'white',
+  },
+  locationMap: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+  },
+  topOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 30 : 20,
+    zIndex: 1,
+    // Add a subtle gradient or shadow if needed, but keeping it clean for now
+  },
+  logoContainer: {
+    backgroundColor: 'white',
+    borderRadius: 50,
+    padding: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    marginBottom: 8,
   },
   logo: {
-    width: 80,
-    height: 80,
+    width: 60,
+    height: 60,
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.green.textSecondary, // Using a visible color if map is light, or check background
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: {width: -1, height: 1},
+    textShadowRadius: 10,
+    // Alternatively, if the map is dark, white is fine. I'll stick to a high contrast approach or white with shadow.
+  },
+  bottomOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: 60,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    zIndex: 1,
   },
   startButton: {
     backgroundColor: colors.green.textSecondary,
-    paddingTop: 8,
-    paddingBottom: 8,
-    paddingLeft: 32,
-    paddingRight: 32,
-    borderRadius: 10,
-    borderColor: 'transparent',
-    marginTop: 30,
-    marginBottom: 30,
+    width: '100%',
+    height: 56,
+    borderRadius: 28, // Circular/Pill shape
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   textStartButton: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 18,
+    textTransform: 'uppercase',
   },
   endButton: {
-    paddingTop: 8,
-    paddingBottom: 8,
-    paddingLeft: 32,
-    paddingRight: 32,
-    borderRadius: 10,
-    borderColor: 'transparent',
-    backgroundColor: 'red',
-    color: 'white',
-    borderCurve: 'circular',
-    marginTop: 30,
-    marginBottom: 30,
+    backgroundColor: '#FF3B30', // Red for stop
+    width: '100%',
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   textEndButton: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 18,
+    textTransform: 'uppercase',
   },
+  // Kept for backward compatibility if needed, but unused in new layout
   text: {
     fontSize: 16,
     color: 'white',
     textAlign: 'center',
     marginBottom: 20,
-  },
-  locationMap: { width: '100%', height: 350, borderRadius: 8, overflow: 'hidden' },
-  header: {
-    backgroundColor: colors.green.background,
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 40,
-    color: 'white',
   },
   status: {
     marginTop: 20,

@@ -8,9 +8,15 @@ const green = {
   textSecondary: '#4EA64B',
 };
 
+const white = {
+  primary: '#FFFFFF',
+  secondary: '#E5E5E5',
+};
+
 
 const colors = {
   green,
+  white
 };
 
 export default colors;
