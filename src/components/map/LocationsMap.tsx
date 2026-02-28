@@ -1,15 +1,21 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import MapView, { Marker } from 'react-native-maps'; // 1. Quita PROVIDER_GOOGLE de aquí
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { initialStoryLocations } from '../../data/mock-data-location';
 import { GeoPosition } from 'react-native-geolocation-service';
 
-// const { width, height } = Dimensions.get('window');
+type StoryLocation = (typeof initialStoryLocations)[number];
 
-const LocationsMap = ({currentPosition}: {currentPosition?: GeoPosition}) => {
-  const mapRef = useRef<MapView>(null); // 1. Crear referencia
+interface LocationsMapProps {
+  currentPosition?: GeoPosition;
+  storyLocations?: StoryLocation[];
+  targetLocation?: StoryLocation | null;
+}
 
-  // 2. Efecto para mover el mapa cuando cambia la ubicación
+const LocationsMap = ({currentPosition, storyLocations, targetLocation}: LocationsMapProps) => {
+  const mapRef = useRef<MapView>(null);
+  const locations = storyLocations ?? initialStoryLocations;
+
   useEffect(() => {
     if (currentPosition?.coords && mapRef.current) {
       mapRef.current.animateToRegion({
@@ -17,24 +23,29 @@ const LocationsMap = ({currentPosition}: {currentPosition?: GeoPosition}) => {
         longitude: currentPosition.coords.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
-      }, 1000); // 1000ms de animación
+      }, 1000);
     }
-  }, [currentPosition]); // Se ejecuta cada vez que currentPosition cambia
+  }, [currentPosition]);
+
+  const userCoord = currentPosition
+    ? {latitude: currentPosition.coords.latitude, longitude: currentPosition.coords.longitude}
+    : null;
+
   return (
     <View style={styles.container}>
       <MapView
         showsUserLocation
         ref={mapRef}
         style={styles.map}
-        followsUserLocation={true}
+        followsUserLocation={!targetLocation}
         initialRegion={{
-          latitude: initialStoryLocations[0].latitude,
-          longitude: initialStoryLocations[0].longitude,
+          latitude: locations[0].latitude,
+          longitude: locations[0].longitude,
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         }}
       >
-        {initialStoryLocations.map((location) => (
+        {locations.map((location) => (
           <Marker
             key={location.id}
             coordinate={{
@@ -43,9 +54,27 @@ const LocationsMap = ({currentPosition}: {currentPosition?: GeoPosition}) => {
             }}
             title={location.title}
             description="Toca para más detalles"
-            pinColor={location.played ? 'green' : 'red'}
+            pinColor={
+              targetLocation?.id === location.id
+                ? 'blue'
+                : location.played
+                ? 'green'
+                : 'red'
+            }
           />
         ))}
+
+        {targetLocation && userCoord && (
+          <Polyline
+            coordinates={[
+              userCoord,
+              {latitude: targetLocation.latitude, longitude: targetLocation.longitude},
+            ]}
+            strokeColor="#007AFF"
+            strokeWidth={4}
+            lineDashPattern={[8, 6]}
+          />
+        )}
       </MapView>
     </View>
   );
@@ -53,23 +82,12 @@ const LocationsMap = ({currentPosition}: {currentPosition?: GeoPosition}) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // Esto hace que ocupe todo el espacio del padre
-    backgroundColor: '#e5e5e5', // Color de fondo por si el mapa falla
+    flex: 1,
+    backgroundColor: '#e5e5e5',
   },
   map: {
     width: '100%',
     height: '100%',
-  },
-  overlay: {
-    position: 'absolute',
-    bottom: 50,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 10,
-    borderRadius: 10,
-  },
-  debugText: {
-    color: 'white',
   },
 });
 

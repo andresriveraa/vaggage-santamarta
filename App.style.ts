@@ -103,6 +103,53 @@ export const stylesApp = StyleSheet.create({
     fontSize: 18,
     textTransform: 'uppercase',
   },
+  mainControls: {
+    width: '100%',
+    gap: 10,
+  },
+  guideButton: {
+    width: '100%',
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 122, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#007AFF',
+  },
+  guideButtonActive: {
+    backgroundColor: 'rgba(0, 122, 255, 0.3)',
+  },
+  guideButtonText: {
+    color: '#007AFF',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  audioControls: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+    width: '100%',
+  },
+  audioControlButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#1C1C1E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  audioStopButton: {
+    backgroundColor: '#3A1A1A',
+    borderColor: '#FF3B30',
+  },
+  audioControlText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 15,
+  },
   // Kept for backward compatibility if needed, but unused in new layout
   text: {
     fontSize: 16,

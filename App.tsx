@@ -71,8 +71,11 @@ function App(): React.JSX.Element {
     <View style={stylesApp.container}>
       {/* Map Layer */}
       <View style={stylesApp.locationMap}>
-        <LocationsMap currentPosition={state.currentPosition ?? undefined} />
-        {/* <LocationsMap currentPosition={state.currentPosition ?? undefined} /> */}
+        <LocationsMap
+          currentPosition={state.currentPosition ?? undefined}
+          storyLocations={state.storyLocations}
+          targetLocation={state.isGuideActive ? state.nearestUnplayedLocation : null}
+        />
       </View>
 
       {/* Top Overlay: Branding */}
@@ -95,15 +98,45 @@ function App(): React.JSX.Element {
 
       {/* Bottom Overlay: Controls */}
       <View style={stylesApp.bottomOverlay} pointerEvents="box-none">
-        {state.watchId === WATCH_ID_INITIAL ? (
-          <Pressable style={stylesApp.startButton} onPress={actions.onStart}>
-            <Text style={stylesApp.textStartButton}>Iniciar Recorrido</Text>
-          </Pressable>
-        ) : (
-          <Pressable style={stylesApp.endButton} onPress={actions.onFinish}>
-            <Text style={stylesApp.textEndButton}>Detener Ruta</Text>
-          </Pressable>
+        {(state.ttsStatus === 'playing' || state.ttsStatus === 'paused') && (
+          <View style={stylesApp.audioControls} pointerEvents="box-none">
+            {state.ttsStatus === 'playing' ? (
+              <Pressable style={stylesApp.audioControlButton} onPress={actions.ttsPause}>
+                <Text style={stylesApp.audioControlText}>⏸ Pausar</Text>
+              </Pressable>
+            ) : (
+              <Pressable style={stylesApp.audioControlButton} onPress={actions.ttsResume}>
+                <Text style={stylesApp.audioControlText}>▶ Reanudar</Text>
+              </Pressable>
+            )}
+            <Pressable style={[stylesApp.audioControlButton, stylesApp.audioStopButton]} onPress={actions.ttsStop}>
+              <Text style={stylesApp.audioControlText}>⏹ Detener</Text>
+            </Pressable>
+          </View>
         )}
+        <View style={stylesApp.mainControls} pointerEvents="box-none">
+          {state.currentPosition && state.nearestUnplayedLocation && (
+            <Pressable
+              style={[
+                stylesApp.guideButton,
+                state.isGuideActive && stylesApp.guideButtonActive,
+              ]}
+              onPress={actions.toggleGuide}>
+              <Text style={stylesApp.guideButtonText}>
+                {state.isGuideActive ? '✕ Detener guía' : '◎ Guíame al punto más cercano'}
+              </Text>
+            </Pressable>
+          )}
+          {state.watchId === WATCH_ID_INITIAL ? (
+            <Pressable style={stylesApp.startButton} onPress={actions.onStart}>
+              <Text style={stylesApp.textStartButton}>Iniciar Recorrido</Text>
+            </Pressable>
+          ) : (
+            <Pressable style={stylesApp.endButton} onPress={actions.onFinish}>
+              <Text style={stylesApp.textEndButton}>Detener Ruta</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
 
       {/* Onboarding Overlay */}

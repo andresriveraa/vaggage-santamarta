@@ -1656,6 +1656,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - Yoga
   - SocketRocket (0.7.1)
+  - TextToSpeech (4.1.1):
+    - React-Core
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -1729,6 +1731,7 @@ DEPENDENCIES:
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
   - RNSound (from `../node_modules/react-native-sound`)
+  - TextToSpeech (from `../node_modules/react-native-tts`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -1877,6 +1880,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-google-signin/google-signin"
   RNSound:
     :path: "../node_modules/react-native-sound"
+  TextToSpeech:
+    :path: "../node_modules/react-native-tts"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -1954,6 +1959,7 @@ SPEC CHECKSUMS:
   RNGoogleSignin: ce618de8a59f44f3b57ae0ffd0b3c52f7d822abd
   RNSound: ffd57494f3a3ad9ea4c580dde8aa3be9e7c4887e
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
+  TextToSpeech: 2b930ec3756afde499061f4f01ea895e1f75dccb
   Yoga: fcc198acd4a55599b3468cfb6ebc526baff5f06e
 
 PODFILE CHECKSUM: 8fafa8f9e6a3b6d351e7144a3320b1ede7a36a53
