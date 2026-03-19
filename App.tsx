@@ -4,7 +4,7 @@
  *
  * @format
  */
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   View,
   Text,
@@ -13,43 +13,82 @@ import {
   ActivityIndicator,
   Animated,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import useMainHook, {WATCH_ID_INITIAL} from './useMain';
+import useMainHook, {WATCH_ID_INITIAL, VOLUME_STEP, VOLUME_MIN, VOLUME_MAX} from './useMain';
+import type {TTSLang} from './useMain';
 import {stylesApp} from './App.style';
 import LocationsMap from './src/components/map/LocationsMap';
 import Onboarding from './src/components/onboarding/Onboarding';
 
+function LanguagePicker({onSelect}: {onSelect: (lang: TTSLang) => void}) {
+  return (
+    <View style={langStyles.container}>
+      <Image
+        source={require('./assets/brand/vaggage.png')}
+        style={langStyles.logo}
+        resizeMode="contain"
+      />
+      <Text style={langStyles.title}>Selecciona tu idioma</Text>
+      <Text style={langStyles.subtitle}>Choose your language</Text>
+      <View style={langStyles.buttons}>
+        <Pressable
+          style={langStyles.button}
+          onPress={() => onSelect('es')}>
+          <Text style={langStyles.flag}>ES</Text>
+          <Text style={langStyles.langName}>Espanol</Text>
+        </Pressable>
+        <Pressable
+          style={langStyles.button}
+          onPress={() => onSelect('en')}>
+          <Text style={langStyles.flag}>EN</Text>
+          <Text style={langStyles.langName}>English</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function App(): React.JSX.Element {
-  const {state, actions} = useMainHook();
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [ttsLang, setTtsLang] = useState<TTSLang | null>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    checkOnboardingStatus();
+    loadInitialState();
   }, []);
 
-  const checkOnboardingStatus = async () => {
+  const loadInitialState = async () => {
     try {
-      const value = await AsyncStorage.getItem('@onboarding_completed');
-      if (value !== 'true') {
+      const [onboarding, savedLang] = await Promise.all([
+        AsyncStorage.getItem('@onboarding_completed'),
+        AsyncStorage.getItem('@tts_lang'),
+      ]);
+      if (onboarding !== 'true') {
         setShowOnboarding(true);
       }
+      if (savedLang === 'es' || savedLang === 'en') {
+        setTtsLang(savedLang);
+      }
     } catch (error) {
-      console.log('Error checking onboarding status:', error);
+      console.log('Error loading initial state:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const onSelectLang = (lang: TTSLang) => {
+    setTtsLang(lang);
+  };
+
   const onFinishOnboarding = async () => {
     try {
       await AsyncStorage.setItem('@onboarding_completed', 'true');
-      // Start fade out animation
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 1500, // 1.5 seconds for "waking up" feel
+        duration: 1500,
         useNativeDriver: true,
       }).start(() => {
         setShowOnboarding(false);
@@ -59,6 +98,19 @@ function App(): React.JSX.Element {
     }
   };
 
+  const onTTSInitFailed = useCallback(() => {
+    AsyncStorage.removeItem('@tts_lang');
+    setTtsLang(null);
+    Alert.alert(
+      'Error',
+      'No se pudo inicializar el idioma seleccionado. Por favor, intenta con otro idioma.',
+    );
+  }, []);
+
+  const onTTSInitSuccess = useCallback(async (lang: TTSLang) => {
+    await AsyncStorage.setItem('@tts_lang', lang);
+  }, []);
+
   if (isLoading) {
     return (
       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
@@ -66,6 +118,37 @@ function App(): React.JSX.Element {
       </View>
     );
   }
+
+  if (ttsLang === null) {
+    return <LanguagePicker onSelect={onSelectLang} />;
+  }
+
+  return <MainApp ttsLang={ttsLang} showOnboarding={showOnboarding}
+    fadeAnim={fadeAnim} onFinishOnboarding={onFinishOnboarding}
+    onChangeLang={() => setTtsLang(null)}
+    onTTSInitFailed={onTTSInitFailed}
+    onTTSInitSuccess={onTTSInitSuccess} />;
+}
+
+function MainApp({ttsLang, showOnboarding, fadeAnim, onFinishOnboarding, onChangeLang, onTTSInitFailed, onTTSInitSuccess}: {
+  ttsLang: TTSLang;
+  showOnboarding: boolean;
+  fadeAnim: Animated.Value;
+  onFinishOnboarding: () => void;
+  onChangeLang: () => void;
+  onTTSInitFailed: () => void;
+  onTTSInitSuccess: (lang: TTSLang) => void;
+}) {
+  const onTTSInitResult = useCallback((success: boolean) => {
+    if (success) {
+      onTTSInitSuccess(ttsLang);
+    } else {
+      onTTSInitFailed();
+    }
+  }, [ttsLang, onTTSInitSuccess, onTTSInitFailed]);
+
+  const {state, actions} = useMainHook(ttsLang, onTTSInitResult);
+  const [onboardingVisible, setOnboardingVisible] = useState(showOnboarding);
 
   return (
     <View style={stylesApp.container}>
@@ -83,7 +166,7 @@ function App(): React.JSX.Element {
         <Pressable
           onPress={() => {
             fadeAnim.setValue(1);
-            setShowOnboarding(true);
+            setOnboardingVisible(true);
           }}
           style={{padding: 10, marginTop: 40}}>
           <View style={stylesApp.logoContainer}>
@@ -98,22 +181,11 @@ function App(): React.JSX.Element {
 
       {/* Bottom Overlay: Controls */}
       <View style={stylesApp.bottomOverlay} pointerEvents="box-none">
-        {(state.ttsStatus === 'playing' || state.ttsStatus === 'paused') && (
-          <View style={stylesApp.audioControls} pointerEvents="box-none">
-            {state.ttsStatus === 'playing' ? (
-              <Pressable style={stylesApp.audioControlButton} onPress={actions.ttsPause}>
-                <Text style={stylesApp.audioControlText}>⏸ Pausar</Text>
-              </Pressable>
-            ) : (
-              <Pressable style={stylesApp.audioControlButton} onPress={actions.ttsResume}>
-                <Text style={stylesApp.audioControlText}>▶ Reanudar</Text>
-              </Pressable>
-            )}
-            <Pressable style={[stylesApp.audioControlButton, stylesApp.audioStopButton]} onPress={actions.ttsStop}>
-              <Text style={stylesApp.audioControlText}>⏹ Detener</Text>
-            </Pressable>
-          </View>
-        )}
+        <Pressable style={langStyles.currentLang} onPress={onChangeLang}>
+          <Text style={langStyles.currentLangText}>
+            {ttsLang === 'es' ? 'ES - Espanol' : 'EN - English'}
+          </Text>
+        </Pressable>
         <View style={stylesApp.mainControls} pointerEvents="box-none">
           {state.currentPosition && state.nearestUnplayedLocation && (
             <Pressable
@@ -123,10 +195,17 @@ function App(): React.JSX.Element {
               ]}
               onPress={actions.toggleGuide}>
               <Text style={stylesApp.guideButtonText}>
-                {state.isGuideActive ? '✕ Detener guía' : '◎ Guíame al punto más cercano'}
+                {state.isGuideActive ? 'x Detener guia' : 'Guiame al punto mas cercano'}
               </Text>
             </Pressable>
           )}
+          <Pressable
+            style={[langStyles.testButton, state.isTTSPlaying && langStyles.testButtonActive]}
+            onPress={actions.toggleTestPlayback}>
+            <Text style={langStyles.testButtonText}>
+              {state.isTTSPlaying ? 'Detener prueba' : 'Probar TTS completo'}
+            </Text>
+          </Pressable>
           {state.watchId === WATCH_ID_INITIAL ? (
             <Pressable style={stylesApp.startButton} onPress={actions.onStart}>
               <Text style={stylesApp.textStartButton}>Iniciar Recorrido</Text>
@@ -140,14 +219,129 @@ function App(): React.JSX.Element {
       </View>
 
       {/* Onboarding Overlay */}
-      {showOnboarding && (
+      {onboardingVisible && (
         <Animated.View
           style={[StyleSheet.absoluteFill, {opacity: fadeAnim, zIndex: 100, backgroundColor: 'white'}]}>
-          <Onboarding onFinish={onFinishOnboarding} />
+          <Onboarding onFinish={() => {
+            onFinishOnboarding();
+            setTimeout(() => setOnboardingVisible(false), 1500);
+          }} />
         </Animated.View>
       )}
     </View>
   );
 }
+
+const langStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#13402B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    marginBottom: 40,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 40,
+  },
+  buttons: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  button: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+    minWidth: 130,
+  },
+  flag: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 8,
+  },
+  langName: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
+  },
+  currentLang: {
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  currentLangText: {
+    fontWeight: '700',
+    fontSize: 14,
+    color: '#1C1C1E',
+  },
+  volumeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 8,
+    gap: 12,
+  },
+  volBtn: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 14,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  volBtnDisabled: {
+    opacity: 0.35,
+  },
+  volBtnText: {
+    color: 'white',
+    fontSize: 22,
+    fontWeight: '700',
+    lineHeight: 26,
+  },
+  volLabel: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
+    minWidth: 60,
+    textAlign: 'center',
+  },
+  testButton: {
+    backgroundColor: 'rgba(100,100,100,0.75)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  testButtonActive: {
+    backgroundColor: 'rgba(180,40,40,0.85)',
+  },
+  testButtonText: {
+    fontWeight: '600',
+    fontSize: 13,
+    color: 'white',
+  },
+});
 
 export default App;

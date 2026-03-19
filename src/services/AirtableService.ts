@@ -7,6 +7,7 @@ export interface StoryLocation {
   id: number;
   title: string;
   description: string;
+  description_en: string;
   latitude: number;
   longitude: number;
   audioFile: string;
@@ -20,6 +21,7 @@ interface AirtableRecord {
     Title?: string;
     description?: string;
     Description?: string;
+    description_en?: string;
     latitude?: number;
     Latitude?: number;
     longitude?: number;
@@ -51,6 +53,7 @@ export const fetchStoryLocations = async (): Promise<StoryLocation[]> => {
       id: index + 1,
       title: (f.title ?? f.Title ?? `Punto ${index + 1}`) as string,
       description: (f.description ?? f.Description ?? '') as string,
+      description_en: (f.description_en ?? '') as string,
       latitude: (f.latitude ?? f.Latitude ?? 0) as number,
       longitude: (f.longitude ?? f.Longitude ?? 0) as number,
       audioFile: '',

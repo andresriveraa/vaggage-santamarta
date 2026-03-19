@@ -14,10 +14,12 @@ interface LocationsMapProps {
 
 const LocationsMap = ({currentPosition, storyLocations, targetLocation}: LocationsMapProps) => {
   const mapRef = useRef<MapView>(null);
+  const hascentered = useRef(false);
   const locations = storyLocations ?? initialStoryLocations;
 
   useEffect(() => {
-    if (currentPosition?.coords && mapRef.current) {
+    if (currentPosition?.coords && mapRef.current && !hascentered.current) {
+      hascentered.current = true;
       mapRef.current.animateToRegion({
         latitude: currentPosition.coords.latitude,
         longitude: currentPosition.coords.longitude,
@@ -37,7 +39,7 @@ const LocationsMap = ({currentPosition, storyLocations, targetLocation}: Locatio
         showsUserLocation
         ref={mapRef}
         style={styles.map}
-        followsUserLocation={!targetLocation}
+        followsUserLocation={false}
         initialRegion={{
           latitude: locations[0].latitude,
           longitude: locations[0].longitude,

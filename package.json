@@ -18,11 +18,14 @@
     "react": "18.3",
     "react-native": "0.76.5",
     "react-native-dotenv": "^3.4.11",
+    "react-native-fs": "^2.20.0",
     "react-native-geolocation-service": "^5.3.1",
     "react-native-gesture-handler": "^2.21.2",
     "react-native-maps": "^1.26.20",
+    "react-native-sherpa-onnx-offline-tts": "^0.2.6",
     "react-native-sound": "^0.13.0",
-    "react-native-tts": "^4.1.1"
+    "react-native-tts": "^4.1.1",
+    "react-native-zip-archive": "^7.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

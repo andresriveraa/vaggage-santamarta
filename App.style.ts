@@ -150,6 +150,32 @@ export const stylesApp = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
   },
+  langSelector: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+    justifyContent: 'center',
+  },
+  langButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+  langButtonActive: {
+    backgroundColor: '#1C1C1E',
+    borderColor: '#1C1C1E',
+  },
+  langButtonText: {
+    fontWeight: '700',
+    fontSize: 14,
+    color: '#1C1C1E',
+  },
+  langButtonTextActive: {
+    color: 'white',
+  },
   // Kept for backward compatibility if needed, but unused in new layout
   text: {
     fontSize: 16,

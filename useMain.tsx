@@ -1,20 +1,19 @@
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useRef} from 'react';
 import {Platform, Alert, AppState} from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import {getDistance} from 'geolib';
 import {initialStoryLocations} from './src/data/mock-data-location';
-import {useTTS} from './src/hooks/useTTS';
 import {fetchStoryLocations} from './src/services/AirtableService';
+import { initTTS, releaseTTS, speak as speakSherpa, abortSpeak, setTTSVolume, getTTSVolume, VOLUME_STEP, VOLUME_MIN, VOLUME_MAX, type TTSLang } from './src/services/tts-sherpa';
 
+
+export type { TTSLang } from './src/services/tts-sherpa';
+export { VOLUME_STEP, VOLUME_MIN, VOLUME_MAX } from './src/services/tts-sherpa';
 export const WATCH_ID_INITIAL = null;
-const PROXIMITY_RADIUS = 50; // 50 metros de radio para la detección
+const PROXIMITY_RADIUS = 20; // 20 metros de radio para la detección
 const AUDIO_COOLDOWN_MS = 10000; // 10 segundos de pausa para evitar repeticiones/superposiciones
 
-// business logic
-// ui logic
-// data logic
-
-const useMainHook = () => {
+const useMainHook = (ttsLang: TTSLang, onTTSInitResult?: (success: boolean) => void) => {
   const [watchId, setWatchId] = useState<number | null>(WATCH_ID_INITIAL);
   const [currentPosition, setCurrentPosition] =
     useState<Geolocation.GeoPosition | null>(null);
@@ -23,9 +22,14 @@ const useMainHook = () => {
   const [isAudioLocked, setIsAudioLocked] = useState(false);
   const [appState, setAppState] = useState<string>('');
   const [isGuideActive, setIsGuideActive] = useState(false);
-  AppState.addEventListener('change', setAppState);
+  const [ttsVolume, setTtsVolumeState] = useState(getTTSVolume());
+  const [isTTSPlaying, setIsTTSPlaying] = useState(false);
+  const cancelTestRef = useRef(false);
 
-  const {speak, stop: ttsStop, pause: ttsPause, resume: ttsResume, status: ttsStatus} = useTTS();
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', setAppState);
+    return () => subscription.remove();
+  }, []);
 
   // Cargar ubicaciones desde Airtable al iniciar
   useEffect(() => {
@@ -68,7 +72,7 @@ const useMainHook = () => {
     }, AUDIO_COOLDOWN_MS);
 
     console.log(`Reproduciendo TTS: ${storyTitle}`);
-    speak(description);
+    speakSherpa(description);
   };
 
 
@@ -100,7 +104,11 @@ const useMainHook = () => {
         );
 
         if (distanceInMeters < PROXIMITY_RADIUS) {
-          playStoryTTS(story.description, story.title);
+          const textToSpeak =
+            ttsLang === 'en' && story.description_en
+              ? story.description_en
+              : story.description;
+          playStoryTTS(textToSpeak, story.title);
           return {...story, played: true};
         }
 
@@ -184,13 +192,13 @@ const useMainHook = () => {
   }, [watchId]);
 
   const nearestUnplayedLocation = (() => {
-    if (!currentPosition) return null;
+    if (!currentPosition) { return null; }
     const userCoords = {
       latitude: currentPosition.coords.latitude,
       longitude: currentPosition.coords.longitude,
     };
     const unplayed = storyLocations.filter(l => !l.played);
-    if (unplayed.length === 0) return null;
+    if (unplayed.length === 0) { return null; }
     return unplayed.reduce((nearest, loc) => {
       const d = getDistance(userCoords, {latitude: loc.latitude, longitude: loc.longitude});
       const dNearest = getDistance(userCoords, {latitude: nearest.latitude, longitude: nearest.longitude});
@@ -200,6 +208,39 @@ const useMainHook = () => {
 
   const toggleGuide = () => setIsGuideActive(prev => !prev);
 
+  const changeVolume = (delta: number) => {
+    const next = Math.max(VOLUME_MIN, Math.min(VOLUME_MAX, +(ttsVolume + delta).toFixed(1)));
+    setTTSVolume(next);
+    setTtsVolumeState(next);
+  };
+
+  const toggleTestPlayback = async () => {
+    if (isTTSPlaying) {
+      cancelTestRef.current = true;
+      abortSpeak();
+      setIsTTSPlaying(false);
+      return;
+    }
+
+    cancelTestRef.current = false;
+    setIsTTSPlaying(true);
+    console.log('[Test] Reproduciendo todas las descripciones en orden...');
+
+    for (const story of storyLocations) {
+      if (cancelTestRef.current) { break; }
+      const text = ttsLang === 'en' && story.description_en
+        ? story.description_en
+        : story.description;
+      console.log(`[Test] Reproduciendo: ${story.title}`);
+      await speakSherpa(text);
+    }
+
+    if (!cancelTestRef.current) {
+      console.log('[Test] Fin de la reproducción de prueba.');
+    }
+    setIsTTSPlaying(false);
+  };
+
   const onStart = async () => {
     await startWatching();
   };
@@ -207,24 +248,34 @@ const useMainHook = () => {
     stopWatching();
   };
 
+  useEffect(() => {
+    (async () => {
+      const success = await initTTS(ttsLang);
+      onTTSInitResult?.(success);
+    })();
+    return () => { releaseTTS(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ttsLang]);
+
   return {
     state: {
       currentPosition,
       error,
       watchId,
       appState,
-      ttsStatus,
       storyLocations,
       isGuideActive,
       nearestUnplayedLocation,
+      ttsLang,
+      ttsVolume,
+      isTTSPlaying,
     },
     actions: {
       onStart,
       onFinish,
-      ttsPause,
-      ttsResume,
-      ttsStop,
       toggleGuide,
+      toggleTestPlayback,
+      changeVolume,
     },
   };
 };
