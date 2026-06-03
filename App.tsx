@@ -16,7 +16,7 @@ import {
   Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import useMainHook, {WATCH_ID_INITIAL, VOLUME_STEP, VOLUME_MIN, VOLUME_MAX} from './useMain';
+import useMainHook, {WATCH_ID_INITIAL} from './useMain';
 import type {TTSLang} from './useMain';
 import {stylesApp} from './App.style';
 import LocationsMap from './src/components/map/LocationsMap';
@@ -199,13 +199,7 @@ function MainApp({ttsLang, showOnboarding, fadeAnim, onFinishOnboarding, onChang
               </Text>
             </Pressable>
           )}
-          <Pressable
-            style={[langStyles.testButton, state.isTTSPlaying && langStyles.testButtonActive]}
-            onPress={actions.toggleTestPlayback}>
-            <Text style={langStyles.testButtonText}>
-              {state.isTTSPlaying ? 'Detener prueba' : 'Probar TTS completo'}
-            </Text>
-          </Pressable>
+
           {state.watchId === WATCH_ID_INITIAL ? (
             <Pressable style={stylesApp.startButton} onPress={actions.onStart}>
               <Text style={stylesApp.textStartButton}>Iniciar Recorrido</Text>
@@ -292,55 +286,6 @@ const langStyles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
     color: '#1C1C1E',
-  },
-  volumeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginBottom: 8,
-    gap: 12,
-  },
-  volBtn: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 14,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  volBtnDisabled: {
-    opacity: 0.35,
-  },
-  volBtnText: {
-    color: 'white',
-    fontSize: 22,
-    fontWeight: '700',
-    lineHeight: 26,
-  },
-  volLabel: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
-    minWidth: 60,
-    textAlign: 'center',
-  },
-  testButton: {
-    backgroundColor: 'rgba(100,100,100,0.75)',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginBottom: 8,
-  },
-  testButtonActive: {
-    backgroundColor: 'rgba(180,40,40,0.85)',
-  },
-  testButtonText: {
-    fontWeight: '600',
-    fontSize: 13,
-    color: 'white',
   },
 });
 

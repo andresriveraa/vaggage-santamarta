@@ -2,6 +2,15 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:../src/services/test-candelaria.gpx">
+   </FileRef>
+   <FileRef
+      location = "group:../src/services/test-candelaria.gpx">
+   </FileRef>
+   <FileRef
+      location = "group:../src/services/test-candelaria.gpx">
+   </FileRef>
+   <FileRef
       location = "group:VaggageMobileApp.xcodeproj">
    </FileRef>
    <FileRef

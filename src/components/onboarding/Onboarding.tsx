@@ -12,35 +12,64 @@ import colors from '../../constants/colors';
 
 const {width} = Dimensions.get('window');
 
-const SLIDES = [
-  {
-    id: '1',
-    title: 'Busca Audioguías',
-    description:
-      'Busca audioguías en tu destino a visitar. Ejemplo: La Candelaria, Bogotá.',
-    emoji: '🔍',
-  },
-  {
-    id: '2',
-    title: 'Compra tu Guía',
-    description:
-      'Compra tu audioguía y accede a contenido exclusivo narrado por expertos.',
-    emoji: '🛒',
-  },
-  {
-    id: '3',
-    title: 'Camina y Escucha',
-    description:
-      'Sal a caminar con tus audífonos puestos y Vaggage te irá mostrando y guiando por los lugares interesantes.',
-    emoji: '🎧',
-  },
-];
+type Lang = 'es' | 'en';
+
+const SLIDES: Record<Lang, {id: string; title: string; description: string; emoji: string}[]> = {
+  es: [
+    {
+      id: '1',
+      title: 'Tu próximo destino, en audio',
+      description: 'Encuentra audioguías de los mejores lugares en Colombia. Empieza por La Candelaria, en Bogotá.',
+      emoji: '🔍',
+    },
+    {
+      id: '2',
+      title: 'Cada lugar tiene una historia',
+      description: 'Con tu audioguía, accedes a contenido exclusivo sobre la historia, cultura y secretos de cada rincón.',
+      emoji: '🛒',
+    },
+    {
+      id: '3',
+      title: 'Camina. Escucha. Descubre.',
+      description: 'Pon tus audífonos y deja que Vaggage te lleve por los lugares que no aparecen en los mapas.',
+      emoji: '🎧',
+    },
+  ],
+  en: [
+    {
+      id: '1',
+      title: 'Your next destination, in audio',
+      description: 'Find audio guides for the best places in Colombia. Start with La Candelaria, in Bogotá.',
+      emoji: '🔍',
+    },
+    {
+      id: '2',
+      title: 'Every place has a story',
+      description: 'With your audio guide, you get exclusive content about the history, culture, and hidden stories of each spot.',
+      emoji: '🛒',
+    },
+    {
+      id: '3',
+      title: 'Walk. Listen. Discover.',
+      description: 'Put on your headphones and let Vaggage take you to the places maps don\'t show.',
+      emoji: '🎧',
+    },
+  ],
+};
+
+const UI_TEXT: Record<Lang, {skip: string; next: string; start: string}> = {
+  es: {skip: 'Saltar', next: 'Siguiente', start: 'Empezar'},
+  en: {skip: 'Skip', next: 'Next', start: 'Get Started'},
+};
 
 interface OnboardingProps {
+  lang?: Lang;
   onFinish: () => void;
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({onFinish}) => {
+const Onboarding: React.FC<OnboardingProps> = ({lang = 'es', onFinish}) => {
+  const slides = SLIDES[lang];
+  const ui = UI_TEXT[lang];
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -52,7 +81,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onFinish}) => {
 
   const goToNextSlide = () => {
     const nextSlideIndex = currentSlideIndex + 1;
-    if (nextSlideIndex !== SLIDES.length) {
+    if (nextSlideIndex !== slides.length) {
       const offset = nextSlideIndex * width;
       flatListRef?.current?.scrollToOffset({offset});
       setCurrentSlideIndex(nextSlideIndex);
@@ -65,7 +94,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onFinish}) => {
     onFinish();
   };
 
-  const Slide = ({item}: {item: (typeof SLIDES)[0]}) => {
+  const Slide = ({item}: {item: (typeof slides)[0]}) => {
     return (
       <View style={styles.slide}>
         <Text style={styles.emoji}>{item.emoji}</Text>
@@ -82,10 +111,10 @@ const Onboarding: React.FC<OnboardingProps> = ({onFinish}) => {
         <FlatList
           ref={flatListRef}
           onMomentumScrollEnd={updateCurrentSlideIndex}
-          contentContainerStyle={{height: width}} // Adjust height if needed, but flex works better usually
+          contentContainerStyle={{height: width}}
           showsHorizontalScrollIndicator={false}
           horizontal
-          data={SLIDES}
+          data={slides}
           pagingEnabled
           renderItem={({item}) => <Slide item={item} />}
         />
@@ -95,7 +124,7 @@ const Onboarding: React.FC<OnboardingProps> = ({onFinish}) => {
       <View style={styles.footer}>
         {/* Indicators */}
         <View style={styles.indicatorContainer}>
-          {SLIDES.map((_, index) => (
+          {slides.map((_, index) => (
             <View
               key={index}
               style={[
@@ -108,18 +137,18 @@ const Onboarding: React.FC<OnboardingProps> = ({onFinish}) => {
 
         {/* Buttons */}
         <View style={styles.buttonContainer}>
-          {currentSlideIndex < SLIDES.length - 1 ? (
+          {currentSlideIndex < slides.length - 1 ? (
             <>
               <Pressable onPress={skip}>
-                <Text style={styles.skipButtonText}>Saltar</Text>
+                <Text style={styles.skipButtonText}>{ui.skip}</Text>
               </Pressable>
               <Pressable style={styles.nextButton} onPress={goToNextSlide}>
-                <Text style={styles.nextButtonText}>Siguiente</Text>
+                <Text style={styles.nextButtonText}>{ui.next}</Text>
               </Pressable>
             </>
           ) : (
             <Pressable style={styles.startButton} onPress={goToNextSlide}>
-              <Text style={styles.startButtonText}>Empezar</Text>
+              <Text style={styles.startButtonText}>{ui.start}</Text>
             </Pressable>
           )}
         </View>

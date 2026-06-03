@@ -1,14 +1,12 @@
-import {useState, useEffect, useRef} from 'react';
+import {useState, useEffect} from 'react';
 import {Platform, Alert, AppState} from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import {getDistance} from 'geolib';
-import {initialStoryLocations} from './src/data/mock-data-location';
-import {fetchStoryLocations} from './src/services/AirtableService';
-import { initTTS, releaseTTS, speak as speakSherpa, abortSpeak, setTTSVolume, getTTSVolume, VOLUME_STEP, VOLUME_MIN, VOLUME_MAX, type TTSLang } from './src/services/tts-sherpa';
+import {fetchStoryLocations, type StoryLocation} from './src/services/AirtableService';
+import { initTTS, releaseTTS, speak as speakSherpa, type TTSLang } from './src/services/tts-sherpa';
 
 
 export type { TTSLang } from './src/services/tts-sherpa';
-export { VOLUME_STEP, VOLUME_MIN, VOLUME_MAX } from './src/services/tts-sherpa';
 export const WATCH_ID_INITIAL = null;
 const PROXIMITY_RADIUS = 20; // 20 metros de radio para la detección
 const AUDIO_COOLDOWN_MS = 10000; // 10 segundos de pausa para evitar repeticiones/superposiciones
@@ -18,13 +16,10 @@ const useMainHook = (ttsLang: TTSLang, onTTSInitResult?: (success: boolean) => v
   const [currentPosition, setCurrentPosition] =
     useState<Geolocation.GeoPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [storyLocations, setStoryLocations] = useState(initialStoryLocations);
+  const [storyLocations, setStoryLocations] = useState<StoryLocation[]>([]);
   const [isAudioLocked, setIsAudioLocked] = useState(false);
   const [appState, setAppState] = useState<string>('');
   const [isGuideActive, setIsGuideActive] = useState(false);
-  const [ttsVolume, setTtsVolumeState] = useState(getTTSVolume());
-  const [isTTSPlaying, setIsTTSPlaying] = useState(false);
-  const cancelTestRef = useRef(false);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', setAppState);
@@ -44,7 +39,7 @@ const useMainHook = (ttsLang: TTSLang, onTTSInitResult?: (success: boolean) => v
       })
       .catch(err => {
         console.warn(
-          '[useMain] Error al cargar desde Airtable, usando mock data:',
+          '[useMain] Error al cargar ubicaciones desde Airtable:',
           err,
         );
       });
@@ -208,39 +203,6 @@ const useMainHook = (ttsLang: TTSLang, onTTSInitResult?: (success: boolean) => v
 
   const toggleGuide = () => setIsGuideActive(prev => !prev);
 
-  const changeVolume = (delta: number) => {
-    const next = Math.max(VOLUME_MIN, Math.min(VOLUME_MAX, +(ttsVolume + delta).toFixed(1)));
-    setTTSVolume(next);
-    setTtsVolumeState(next);
-  };
-
-  const toggleTestPlayback = async () => {
-    if (isTTSPlaying) {
-      cancelTestRef.current = true;
-      abortSpeak();
-      setIsTTSPlaying(false);
-      return;
-    }
-
-    cancelTestRef.current = false;
-    setIsTTSPlaying(true);
-    console.log('[Test] Reproduciendo todas las descripciones en orden...');
-
-    for (const story of storyLocations) {
-      if (cancelTestRef.current) { break; }
-      const text = ttsLang === 'en' && story.description_en
-        ? story.description_en
-        : story.description;
-      console.log(`[Test] Reproduciendo: ${story.title}`);
-      await speakSherpa(text);
-    }
-
-    if (!cancelTestRef.current) {
-      console.log('[Test] Fin de la reproducción de prueba.');
-    }
-    setIsTTSPlaying(false);
-  };
-
   const onStart = async () => {
     await startWatching();
   };
@@ -267,15 +229,11 @@ const useMainHook = (ttsLang: TTSLang, onTTSInitResult?: (success: boolean) => v
       isGuideActive,
       nearestUnplayedLocation,
       ttsLang,
-      ttsVolume,
-      isTTSPlaying,
     },
     actions: {
       onStart,
       onFinish,
       toggleGuide,
-      toggleTestPlayback,
-      changeVolume,
     },
   };
 };

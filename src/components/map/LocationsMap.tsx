@@ -1,10 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
-import { initialStoryLocations } from '../../data/mock-data-location';
 import { GeoPosition } from 'react-native-geolocation-service';
+import type { StoryLocation } from '../../services/AirtableService';
 
-type StoryLocation = (typeof initialStoryLocations)[number];
+// Centro de La Candelaria, Bogotá — región inicial mientras cargan las ubicaciones
+const DEFAULT_REGION = {
+  latitude: 4.6014,
+  longitude: -74.0661,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+};
 
 interface LocationsMapProps {
   currentPosition?: GeoPosition;
@@ -15,7 +21,7 @@ interface LocationsMapProps {
 const LocationsMap = ({currentPosition, storyLocations, targetLocation}: LocationsMapProps) => {
   const mapRef = useRef<MapView>(null);
   const hascentered = useRef(false);
-  const locations = storyLocations ?? initialStoryLocations;
+  const locations = storyLocations ?? [];
 
   useEffect(() => {
     if (currentPosition?.coords && mapRef.current && !hascentered.current) {
@@ -40,12 +46,16 @@ const LocationsMap = ({currentPosition, storyLocations, targetLocation}: Locatio
         ref={mapRef}
         style={styles.map}
         followsUserLocation={false}
-        initialRegion={{
-          latitude: locations[0].latitude,
-          longitude: locations[0].longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
+        initialRegion={
+          locations.length > 0
+            ? {
+                latitude: locations[0].latitude,
+                longitude: locations[0].longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }
+            : DEFAULT_REGION
+        }
       >
         {locations.map((location) => (
           <Marker
