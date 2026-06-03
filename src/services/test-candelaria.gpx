@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Vaggage Test">
+  <trk>
+    <name>Test Candelaria</name>
+    <trkseg>
+      <trkpt lat="4.601060" lon="-74.073181"><time>2026-01-01T00:00:00Z</time></trkpt>
+      <trkpt lat="4.601300" lon="-74.073181"><time>2026-01-01T00:00:08Z</time></trkpt>
+      <trkpt lat="4.601550" lon="-74.073181"><time>2026-01-01T00:00:16Z</time></trkpt>
+      <trkpt lat="4.601783" lon="-74.073181"><time>2026-01-01T00:00:24Z</time></trkpt>
+      <trkpt lat="4.599000" lon="-74.072800"><time>2026-01-01T00:00:32Z</time></trkpt>
+      <trkpt lat="4.597000" lon="-74.072500"><time>2026-01-01T00:00:40Z</time></trkpt>
+      <trkpt lat="4.596200" lon="-74.072500"><time>2026-01-01T00:00:48Z</time></trkpt>
+      <trkpt lat="4.595833" lon="-74.072500"><time>2026-01-01T00:00:56Z</time></trkpt>
+      <trkpt lat="4.595500" lon="-74.072420"><time>2026-01-01T00:01:04Z</time></trkpt>
+      <trkpt lat="4.595207" lon="-74.072346"><time>2026-01-01T00:01:12Z</time></trkpt>
+      <trkpt lat="4.595350" lon="-74.072800"><time>2026-01-01T00:01:20Z</time></trkpt>
+      <trkpt lat="4.595500" lon="-74.073300"><time>2026-01-01T00:01:28Z</time></trkpt>
+      <trkpt lat="4.595400" lon="-74.074000"><time>2026-01-01T00:01:36Z</time></trkpt>
+      <trkpt lat="4.595240" lon="-74.075110"><time>2026-01-01T00:01:52Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
