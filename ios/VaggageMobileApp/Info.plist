@@ -50,6 +50,8 @@
 	</dict>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Necesitamos tu ubicación para rastrear tu movimiento continuamente, incluso cuando la aplicación está en segundo plano.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Necesitamos tu ubicación para rastrear tu movimiento continuamente, incluso cuando la aplicación está en segundo plano.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Necesitamos tu ubicación mientras usas la aplicación.</string>
 	<key>UIBackgroundModes</key>
