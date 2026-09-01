@@ -62,10 +62,20 @@ const UI_TEXT: Record<Lang, {skip: string; next: string; start: string}> = {
   en: {skip: 'Skip', next: 'Next', start: 'Get Started'},
 };
 
+type SlideItem = {id: string; title: string; description: string; emoji: string};
+
 interface OnboardingProps {
   lang?: Lang;
   onFinish: () => void;
 }
+
+const Slide = ({item}: {item: SlideItem}) => (
+  <View style={styles.slide}>
+    <Text style={styles.emoji}>{item.emoji}</Text>
+    <Text style={styles.title}>{item.title}</Text>
+    <Text style={styles.description}>{item.description}</Text>
+  </View>
+);
 
 const Onboarding: React.FC<OnboardingProps> = ({lang = 'es', onFinish}) => {
   const slides = SLIDES[lang];
@@ -92,16 +102,6 @@ const Onboarding: React.FC<OnboardingProps> = ({lang = 'es', onFinish}) => {
 
   const skip = () => {
     onFinish();
-  };
-
-  const Slide = ({item}: {item: (typeof slides)[0]}) => {
-    return (
-      <View style={styles.slide}>
-        <Text style={styles.emoji}>{item.emoji}</Text>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.description}>{item.description}</Text>
-      </View>
-    );
   };
 
   return (

@@ -1,9 +1,23 @@
-import {StyleSheet, Dimensions, Platform} from 'react-native';
+import {StyleSheet, Platform} from 'react-native';
 import colors from './src/constants/colors';
 
-const {width, height} = Dimensions.get('window');
-
 export const stylesApp = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  flex1: {
+    flex: 1,
+  },
+  onboardingOverlay: {
+    zIndex: 100,
+    backgroundColor: 'white',
+  },
+  logoButton: {
+    padding: 10,
+    marginTop: 40,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.green.background,
@@ -106,6 +120,75 @@ export const stylesApp = StyleSheet.create({
   mainControls: {
     width: '100%',
     gap: 10,
+  },
+  nextStopCard: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  nextStopLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: colors.green.textSecondary,
+    marginBottom: 2,
+  },
+  nextStopTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.green.textPrimary,
+  },
+  nextStopMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  nextStopDistance: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.green.secondary,
+  },
+  nextStopProgress: {
+    fontSize: 14,
+    color: 'rgba(0,0,0,0.55)',
+  },
+  // Tarjeta de descarga: mismo lenguaje visual que nextStopCard, pero es lo
+  // primero que ve el usuario al abrir una guía que todavía no bajó.
+  downloadMeta: {
+    fontSize: 14,
+    color: 'rgba(0,0,0,0.55)',
+    marginTop: 4,
+  },
+  downloadError: {
+    fontSize: 14,
+    color: '#FF3B30',
+    marginTop: 4,
+  },
+  downloadProgressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    marginTop: 10,
+    overflow: 'hidden',
+  },
+  downloadProgressFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: colors.green.textSecondary,
+  },
+  startButtonDisabled: {
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   guideButton: {
     width: '100%',
