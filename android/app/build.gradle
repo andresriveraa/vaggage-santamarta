@@ -125,7 +125,6 @@ android {
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
-    implementation files("../../node_modules/react-native-sherpa-onnx-offline-tts/android/libs/sherpa-onnx-1.10.35.aar")
     implementation("com.facebook.react:react-android")
 
     if (hermesEnabled.toBoolean()) {

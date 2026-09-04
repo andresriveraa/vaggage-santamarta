@@ -3,6 +3,7 @@ import {Image, Pressable, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useAuth} from '../../context/AuthContext';
 import colors from '../../constants/colors';
+import BackArrowIcon from '../../components/icons/BackArrowIcon';
 
 const COPY = {
   es: {
@@ -32,9 +33,10 @@ const ProfileScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable
-          style={styles.headerButton}
+          style={[styles.headerButton, styles.headerButtonRow]}
           onPress={() => navigation.goBack()}>
-          <Text style={styles.headerButtonText}>‹ {t.back}</Text>
+          <BackArrowIcon size={16} color={colors.white.primary} />
+          <Text style={styles.headerButtonText}>{t.back}</Text>
         </Pressable>
         <Text style={styles.headerTitle}>{t.title}</Text>
         <Pressable style={styles.headerButton} onPress={() => toggleLang()}>
@@ -89,6 +91,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.3)',
+  },
+  headerButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   headerButtonText: {
     color: colors.white.primary,

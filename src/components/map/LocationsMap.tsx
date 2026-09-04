@@ -1,17 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { GeoPosition } from 'react-native-geolocation-service';
 import type { StoryLocation } from '../../services/AirtableService';
+import type { CachedAudioGuidePoint } from '../../services/AudioGuideService';
 import type { AppLang } from '../../constants/lang';
 import colors from '../../constants/colors';
 
 const DETAIL_STRINGS: Record<AppLang, {
   visited: string;
-  // `play`/`playing` quedan a la espera del reproductor de audioguías; hoy
-  // ningún control los usa (ver el botón oculto más abajo).
   play: string;
   playing: string;
+  download: string;
+  downloading: string;
   guideHere: string;
   guidingHere: string;
 }> = {
@@ -19,6 +20,8 @@ const DETAIL_STRINGS: Record<AppLang, {
     visited: 'Visitado',
     play: 'Reproducir audio',
     playing: 'Reproduciendo…',
+    download: 'Descargar audio',
+    downloading: 'Descargando…',
     guideHere: 'Guíame aquí',
     guidingHere: 'Guiándote aquí…',
   },
@@ -26,6 +29,8 @@ const DETAIL_STRINGS: Record<AppLang, {
     visited: 'Visited',
     play: 'Play audio',
     playing: 'Playing…',
+    download: 'Download audio',
+    downloading: 'Downloading…',
     guideHere: 'Guide me here',
     guidingHere: 'Guiding you here…',
   },
@@ -45,6 +50,12 @@ interface LocationsMapProps {
   targetLocation?: StoryLocation | null;
   lang: AppLang;
   onGuideToLocation?: (location: StoryLocation) => void;
+  audioPoints?: CachedAudioGuidePoint[];
+  previewingLocationId?: number | null;
+  downloadingLocationId?: number | null;
+  onPlayPreview?: (location: StoryLocation) => void;
+  onStopPreview?: () => void;
+  onDownloadPreview?: (location: StoryLocation) => void;
 }
 
 const   LocationsMap = ({
@@ -53,6 +64,12 @@ const   LocationsMap = ({
   targetLocation,
   lang,
   onGuideToLocation,
+  audioPoints,
+  previewingLocationId = null,
+  downloadingLocationId = null,
+  onPlayPreview,
+  onStopPreview,
+  onDownloadPreview,
 }: LocationsMapProps) => {
   const mapRef = useRef<MapView>(null);
   const hascentered = useRef(false);
@@ -82,6 +99,21 @@ const   LocationsMap = ({
       : selectedLocation.description
     : '';
   const isGuidingHere = selectedLocation !== null && targetLocation?.id === selectedLocation.id;
+  const selectedAudioPoint = selectedLocation
+    ? audioPoints?.find(p => p.trackId === selectedLocation.id)
+    : undefined;
+  const hasAudio = !!selectedAudioPoint?.localPath;
+  const isPreviewingSelected =
+    selectedLocation !== null && previewingLocationId === selectedLocation.id;
+  const isDownloadingSelected =
+    selectedLocation !== null && downloadingLocationId === selectedLocation.id;
+
+  const deselectLocation = () => {
+    if (previewingLocationId !== null) {
+      onStopPreview?.();
+    }
+    setSelectedLocation(null);
+  };
 
   return (
     <View style={styles.container}>
@@ -90,7 +122,7 @@ const   LocationsMap = ({
         ref={mapRef}
         style={styles.map}
         followsUserLocation={false}
-        onPress={() => setSelectedLocation(null)}
+        onPress={deselectLocation}
         initialRegion={
           locations.length > 0
             ? {
@@ -111,6 +143,9 @@ const   LocationsMap = ({
             }}
             onPress={event => {
               event.stopPropagation();
+              if (previewingLocationId !== null && previewingLocationId !== location.id) {
+                onStopPreview?.();
+              }
               setSelectedLocation(location);
             }}
             pinColor={
@@ -142,7 +177,7 @@ const   LocationsMap = ({
             <Pressable
               style={styles.closeButton}
               hitSlop={10}
-              onPress={() => setSelectedLocation(null)}>
+              onPress={deselectLocation}>
               <Text style={styles.closeButtonText}>{'×'}</Text>
             </Pressable>
 
@@ -161,9 +196,42 @@ const   LocationsMap = ({
               </ScrollView>
             )}
 
-            {/* Oculto: aquí iba "Reproducir audio", que sintetizaba la
-                descripción con TTS. Vuelve cuando la tarjeta reproduzca el
-                archivo de audio descargado de la audioguía. */}
+            <Pressable
+              style={[
+                styles.playButton,
+                (!hasAudio || isPreviewingSelected) && styles.playButtonDisabled,
+              ]}
+              disabled={!hasAudio || isPreviewingSelected}
+              onPress={() => selectedLocation && onPlayPreview?.(selectedLocation)}>
+              <Text
+                style={[
+                  styles.playButtonText,
+                  (!hasAudio || isPreviewingSelected) && styles.playButtonTextDisabled,
+                ]}>
+                {isPreviewingSelected ? t.playing : t.play}
+              </Text>
+            </Pressable>
+
+            {!hasAudio && (
+              <Pressable
+                style={[
+                  styles.downloadButton,
+                  isDownloadingSelected && styles.downloadButtonDisabled,
+                ]}
+                disabled={isDownloadingSelected}
+                onPress={() => selectedLocation && onDownloadPreview?.(selectedLocation)}>
+                {isDownloadingSelected && (
+                  <ActivityIndicator
+                    size="small"
+                    color={colors.green.textSecondary}
+                    style={styles.downloadSpinner}
+                  />
+                )}
+                <Text style={styles.downloadButtonText}>
+                  {isDownloadingSelected ? t.downloading : t.download}
+                </Text>
+              </Pressable>
+            )}
 
             <Pressable
               style={[styles.guideHereButton, isGuidingHere && styles.guideHereButtonActive]}
@@ -280,6 +348,27 @@ const styles = StyleSheet.create({
   },
   playButtonTextDisabled: {
     color: 'rgba(0,0,0,0.4)',
+  },
+  downloadButton: {
+    flexDirection: 'row',
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    borderWidth: 1.5,
+    borderColor: colors.green.textSecondary,
+  },
+  downloadButtonDisabled: {
+    borderColor: colors.white.secondary,
+  },
+  downloadSpinner: {
+    marginRight: 8,
+  },
+  downloadButtonText: {
+    color: colors.green.textSecondary,
+    fontWeight: '600',
+    fontSize: 14,
   },
   guideHereButton: {
     height: 48,

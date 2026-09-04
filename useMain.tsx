@@ -7,6 +7,7 @@ import type { CityGuides, IPointsGuide} from './src/services/PurchasesService';
 import {GUIDANCE_MILESTONES} from './src/services/guidance';
 import {
   downloadAudioGuide,
+  downloadAudioGuidePoint,
   loadCachedAudioGuide,
   playAudioFile,
   stopAudio,
@@ -76,6 +77,13 @@ const useMainHook = () => {
   // Punto elegido a mano desde el mapa ("Guíame aquí"): cuando está activo,
   // reemplaza a la parada más cercana sin visitar como objetivo de la guía.
   const [manualTargetId, setManualTargetId] = useState<number | null>(null);
+  // Parada cuyo audio se está escuchando "de preview" desde el mapa (sin
+  // necesidad de estar cerca). Independiente de `isAudioBusy`, que también se
+  // enciende con la narración automática al llegar a una parada.
+  const [previewingLocationId, setPreviewingLocationId] = useState<number | null>(null);
+  // Parada cuyo audio se está descargando manualmente desde el modal (preview
+  // sin haber descargado antes toda la guía).
+  const [downloadingLocationId, setDownloadingLocationId] = useState<number | null>(null);
 
   // El callback de watchPosition se registra una sola vez, así que todo lo que
   // lee en cada actualización tiene que vivir en refs (no en state capturado).
@@ -183,6 +191,46 @@ const useMainHook = () => {
     }
   };
 
+  // Descarga puntual: el usuario quiere previsualizar una parada que todavía
+  // no tiene audio en disco, sin bajar la guía completa para eso.
+  const downloadPreviewAudio = async (location: StoryLocation) => {
+    if (!userId || !guideId) {
+      console.warn('[useMain] Sin sesión o guía: no se puede descargar el preview');
+      return;
+    }
+
+    setDownloadingLocationId(location.id);
+    try {
+      const point = await downloadAudioGuidePoint(userId, guideId, lang, location.id);
+      if (point?.localPath) {
+        setAudioPoints(prev => {
+          const next = prev.some(p => p.trackId === point.trackId)
+            ? prev.map(p => (p.trackId === point.trackId ? point : p))
+            : [...prev, point];
+          audioPointsRef.current = next;
+          return next;
+        });
+      } else {
+        Alert.alert(
+          lang === 'en' ? 'Audio not available' : 'Audio no disponible',
+          lang === 'en'
+            ? "This stop's audio isn't ready yet."
+            : 'El audio de esta parada todavía no está disponible.',
+        );
+      }
+    } catch (err) {
+      console.warn('[useMain] Error descargando el audio de la parada:', err);
+      Alert.alert(
+        lang === 'en' ? 'Download failed' : 'No se pudo descargar',
+        lang === 'en'
+          ? "We couldn't download this stop's audio. Check your connection."
+          : 'No pudimos descargar el audio de esta parada. Revisa tu conexión.',
+      );
+    } finally {
+      setDownloadingLocationId(null);
+    }
+  };
+
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') {
       const auth = await Geolocation.requestAuthorization('always');
@@ -224,6 +272,32 @@ const useMainHook = () => {
       isPlayingRef.current = false;
       setIsAudioBusy(false);
     });
+  };
+
+  // --- Preview manual desde el modal del mapa: escuchar una parada completa
+  // sin necesidad de estar cerca. Comparte el mismo canal de audio que la
+  // narración por llegada (un solo `Sound` a la vez en AudioGuideService), y
+  // usa la misma bandera `isPlayingRef` para que la detección de proximidad no
+  // dispare una narración encima del preview.
+  const playPreview = (location: StoryLocation) => {
+    const point = audioPointsRef.current.find(p => p.trackId === location.id);
+    if (!point?.localPath) {
+      console.log(`Preview de ${location.title}: sin audio descargado`);
+      return;
+    }
+
+    isPlayingRef.current = true;
+    setIsAudioBusy(true);
+    setPreviewingLocationId(location.id);
+    playAudioFile(point.localPath).finally(() => {
+      isPlayingRef.current = false;
+      setIsAudioBusy(false);
+      setPreviewingLocationId(current => (current === location.id ? null : current));
+    });
+  };
+
+  const stopPreview = () => {
+    stopAudio();
   };
 
   // --- Guía háptica hacia la siguiente parada (manos libres) ---
@@ -527,6 +601,9 @@ const useMainHook = () => {
       isAudioBusy,
       audioStatus,
       audioProgress,
+      audioPoints,
+      previewingLocationId,
+      downloadingLocationId,
       // Paradas que sí quedaron con audio en disco: es lo que la pantalla
       // necesita para decir "8 de 10 con audio" sin recorrer la lista.
       audioReadyCount: audioPoints.filter(p => p.localPath !== null).length,
@@ -547,6 +624,9 @@ const useMainHook = () => {
       toggleGuide,
       guideToLocation,
       downloadGuideAudio,
+      downloadPreviewAudio,
+      playPreview,
+      stopPreview,
 
       onBack,
     },

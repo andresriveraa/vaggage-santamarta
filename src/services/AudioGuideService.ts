@@ -158,6 +158,48 @@ const downloadTo = async (url: string, target: string): Promise<number> => {
   }
 };
 
+// Resuelve el archivo local de UNA parada: si ya está en disco lo usa tal
+// cual, si no, descarga con la URL firmada del punto y reintenta una vez con
+// una fresca (`refetchUrl`) si esa URL ya caducó. Compartido entre la
+// descarga masiva de la guía y la descarga puntual de una sola parada.
+const resolvePointLocalPath = async (
+  point: AudioGuidePoint,
+  refetchUrl: () => Promise<string | null>,
+): Promise<string | null> => {
+  const target = localPathFor(point.storagePath);
+
+  if (await RNFS.exists(target)) {
+    return target;
+  }
+
+  if (point.audioUrl === null) {
+    // El API devuelve audio_url null cuando la fila apunta a un objeto que
+    // todavía no está en el bucket. La parada existe y se dibuja en el
+    // mapa; simplemente no tiene audio que reproducir.
+    console.warn(`[AudioGuide] sin audio disponible: ${point.storagePath}`);
+    return null;
+  }
+
+  let status = await downloadTo(point.audioUrl, target);
+
+  // Las URLs firmadas viven `expires_in` segundos (5 min en desarrollo). Al
+  // primer rechazo se pide una URL fresca y se reintenta una sola vez: si la
+  // nueva también falla, el problema no es la caducidad.
+  if (STALE_URL_STATUSES.includes(status)) {
+    const freshUrl = await refetchUrl();
+    if (freshUrl) {
+      status = await downloadTo(freshUrl, target);
+    }
+  }
+
+  if (status === 200) {
+    return target;
+  }
+
+  console.warn(`[AudioGuide] ${point.storagePath} falló con HTTP ${status}`);
+  return null;
+};
+
 /**
  * Deja la guía completa en disco y devuelve cada parada con su ruta local.
  *
@@ -171,52 +213,16 @@ export const downloadAudioGuide = async (
   onProgress?: (completed: number, total: number) => void,
 ): Promise<CachedAudioGuidePoint[]> => {
   const points = await fetchAudioGuide(userId, guideId, lang);
-
   let urlByPath = new Map(points.map(p => [p.storagePath, p.audioUrl]));
 
   const results: CachedAudioGuidePoint[] = [];
 
   for (const [index, point] of points.entries()) {
-    const target = localPathFor(point.storagePath);
-    let localPath: string | null = null;
-
-    if (await RNFS.exists(target)) {
-      localPath = target;
-    } else {
-      const url = urlByPath.get(point.storagePath) ?? null;
-
-      if (url === null) {
-        // El API devuelve audio_url null cuando la fila apunta a un objeto que
-        // todavía no está en el bucket. La parada existe y se dibuja en el
-        // mapa; simplemente no tiene audio que reproducir.
-        console.warn(`[AudioGuide] sin audio disponible: ${point.storagePath}`);
-      } else {
-        let status = await downloadTo(url, target);
-
-        // Las URLs firmadas viven `expires_in` segundos (5 min en desarrollo).
-        // Una guía entera puede tardar más que eso por datos móviles, así que
-        // al primer rechazo se pide el manifiesto de nuevo y se reintenta con
-        // una URL fresca. Un reintento por parada: si la nueva también falla,
-        // el problema no es la caducidad.
-        if (STALE_URL_STATUSES.includes(status)) {
-          const refreshed = await fetchAudioGuide(userId, guideId, lang);
-          urlByPath = new Map(refreshed.map(p => [p.storagePath, p.audioUrl]));
-
-          const retryUrl = urlByPath.get(point.storagePath);
-          if (retryUrl) {
-            status = await downloadTo(retryUrl, target);
-          }
-        }
-
-        if (status === 200) {
-          localPath = target;
-        } else {
-          console.warn(
-            `[AudioGuide] ${point.storagePath} falló con HTTP ${status}`,
-          );
-        }
-      }
-    }
+    const localPath = await resolvePointLocalPath(point, async () => {
+      const refreshed = await fetchAudioGuide(userId, guideId, lang);
+      urlByPath = new Map(refreshed.map(p => [p.storagePath, p.audioUrl]));
+      return urlByPath.get(point.storagePath) ?? null;
+    });
 
     results.push({
       trackId: point.trackId,
@@ -234,6 +240,60 @@ export const downloadAudioGuide = async (
   await RNFS.writeFile(manifestPathFor(guideId, lang), JSON.stringify(results), 'utf8');
 
   return results;
+};
+
+/**
+ * Descarga el audio de UNA sola parada (preview manual desde el mapa), sin
+ * bajar el resto de la guía. Actualiza el manifiesto en disco para que la
+ * próxima lectura de caché (`loadCachedAudioGuide`) ya la refleje.
+ */
+export const downloadAudioGuidePoint = async (
+  userId: string,
+  guideId: string,
+  lang: AppLang,
+  trackId: number,
+): Promise<CachedAudioGuidePoint | null> => {
+  const points = await fetchAudioGuide(userId, guideId, lang);
+  const point = points.find(p => p.trackId === trackId);
+  if (!point) {
+    return null;
+  }
+
+  const localPath = await resolvePointLocalPath(point, async () => {
+    const refreshed = await fetchAudioGuide(userId, guideId, lang);
+    return refreshed.find(p => p.trackId === trackId)?.audioUrl ?? null;
+  });
+
+  const result: CachedAudioGuidePoint = {
+    trackId: point.trackId,
+    stopName: point.stopName,
+    durationSeconds: point.durationSeconds,
+    storagePath: point.storagePath,
+    latitude: point.latitude,
+    longitude: point.longitude,
+    localPath,
+  };
+
+  const manifestPoints =
+    (await loadCachedAudioGuide(guideId, lang)) ??
+    points.map(p => ({
+      trackId: p.trackId,
+      stopName: p.stopName,
+      durationSeconds: p.durationSeconds,
+      storagePath: p.storagePath,
+      latitude: p.latitude,
+      longitude: p.longitude,
+      localPath: null,
+    }));
+
+  const merged = manifestPoints.some(p => p.trackId === trackId)
+    ? manifestPoints.map(p => (p.trackId === trackId ? result : p))
+    : [...manifestPoints, result];
+
+  await RNFS.mkdir(CACHE_ROOT);
+  await RNFS.writeFile(manifestPathFor(guideId, lang), JSON.stringify(merged), 'utf8');
+
+  return result;
 };
 
 let currentSound: Sound | null = null;

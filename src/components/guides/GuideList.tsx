@@ -13,6 +13,7 @@ import colors from '../../constants/colors';
 import {useAuth} from '../../context/AuthContext';
 import {Link} from '@react-navigation/native';
 import GuideCard from '../GuideCard/GuideCard';
+import ProfileIcon from '../icons/ProfileIcon';
 
 const COPY = {
   es: {
@@ -61,7 +62,7 @@ function GuideList() {
           resizeMode="contain"
         />
         <Link style={styles.langButton} screen={'Profile'} params={{}}>
-          <Text style={styles.langButtonText}>profile</Text>
+          <ProfileIcon size={18} color={colors.white.primary} />
         </Link>
       </View>
 

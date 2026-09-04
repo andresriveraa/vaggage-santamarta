@@ -13,7 +13,8 @@ import {roundDistance} from '../../services/guidance';
 import {stylesApp} from '../../../App.style';
 import LocationsMap from '../map/LocationsMap';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// import { ArrowLeft } from 'lucide-react-native';
+import BackArrowIcon from '../icons/BackArrowIcon';
+import DownloadIcon from '../icons/DownloadIcon';
 // Referencia estable: pasar `[]` inline en cada render cambiaría de
 // identidad y dispararía de nuevo el efecto que arma las paradas.
 
@@ -97,11 +98,17 @@ function GuideDetail() {
           targetLocation={state.isGuideActive ? state.guidanceTarget : null}
           lang={state.lang}
           onGuideToLocation={actions.guideToLocation}
+          audioPoints={state.audioPoints}
+          previewingLocationId={state.previewingLocationId}
+          downloadingLocationId={state.downloadingLocationId}
+          onPlayPreview={actions.playPreview}
+          onStopPreview={actions.stopPreview}
+          onDownloadPreview={actions.downloadPreviewAudio}
         />
       </View>
 
       <Pressable style={styles.backButton} onPress={actions.onBack}>
-        {/* <Text style={styles.backButtonText}>{'<'}</Text> */}
+        <BackArrowIcon size={22} color="#13402B" />
       </Pressable>
       <View style={styles.overlaysLayer}>
         {/* Top Overlay: Back + Branding */}
@@ -218,11 +225,15 @@ function GuideDetail() {
                   <ActivityIndicator size="small" color="white" />
                 )}
                 {!state.isDownloading && (
-                  <Text style={stylesApp.textStartButton}>
-                    {state.audioStatus === 'error'
-                      ? t.downloadRetry
-                      : t.downloadAction}
-                  </Text>
+                  <View style={styles.buttonContent}>
+                    <DownloadIcon size={20} color="white" />
+                    <Text
+                      style={[stylesApp.textStartButton, styles.textNoUppercase]}>
+                      {state.audioStatus === 'error'
+                        ? t.downloadRetry
+                        : t.downloadAction}
+                    </Text>
+                  </View>
                 )}
               </Pressable>
             ) : !state.isTourActive ? (
@@ -278,6 +289,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#13402B',
     marginTop: -2,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  textNoUppercase: {
+    textTransform: 'none',
   },
   guideBadge: {
     backgroundColor: 'white',
