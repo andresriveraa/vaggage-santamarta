@@ -8,7 +8,7 @@ function LanguagePicker() {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../../../assets/brand/vaggage.png')}
+        source={require('../../../assets/brand/kuascua-logo.png')}
         style={styles.logo}
         resizeMode="contain"
       />

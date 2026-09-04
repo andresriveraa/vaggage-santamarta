@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -105,13 +106,11 @@ function GuideDetail() {
       <View style={styles.overlaysLayer}>
         {/* Top Overlay: Back + Branding */}
         <View style={stylesApp.topOverlay} pointerEvents="box-none">
-          {state.guide && (
-            <View style={styles.guideBadge}>
-              <Text style={styles.guideBadgeTitle} numberOfLines={1}>
-                {state.guide.name}
-              </Text>
-            </View>
-          )}
+          <Image
+            source={require('../../../assets/brand/kuascua-logo-positivo-small.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Bottom Overlay: Controls */}
@@ -250,6 +249,12 @@ const styles = StyleSheet.create({
   // o taparía el mapa que queda detrás.
   overlaysLayer: {
     flex: 1,
+  },
+  logo: {
+    top: 12,
+
+    width: 80,
+    height: 80,
   },
   backButton: {
     position: 'absolute',

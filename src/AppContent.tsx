@@ -16,6 +16,8 @@ import {useAuth} from './context/AuthContext';
 import {Button } from '@react-navigation/elements';
 import LoginScreen from './features/login/LoginScreen';
 import { CityGuides } from './services/PurchasesService';
+import Login from './components/login/Login';
+import ProfileScreen from './features/Profile/Profile';
 
 
 export type RootStackParamList = {
@@ -29,21 +31,6 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const ProfileScreen = () => {
-  const {signOut, user} = useAuth();
-  return (
-    <SafeAreaView>
-      <View>
-        <Text>hello profile</Text>
-        <Text>{user?.email}</Text>
-        <Button onTouchEnd={signOut}>logout</Button>
-        <Button screen={'GuidesList'} params={{}}>
-          profile
-        </Button>
-      </View>
-    </SafeAreaView>
-  );
-};
 
 const OnboardingScreen = () => (
   <View>
@@ -60,7 +47,7 @@ function AuthStack() {
       screenOptions={{headerShown: false}}>
       <Stack.Screen name="LngSelect" component={LanguagePicker} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Login" component={Login} />
     </Stack.Navigator>
   );
 }

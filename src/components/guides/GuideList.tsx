@@ -50,16 +50,16 @@ function GuideList() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Image
-          source={require('../../../assets/brand/vaggage.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
         <Pressable style={styles.langButton} onPress={() => auth.toggleLang()}>
           <Text style={styles.langButtonText}>
             {auth.lang === 'es' ? 'EN' : 'ES'}
           </Text>
         </Pressable>
+        <Image
+          source={require('../../../assets/brand/kuascua-horizontal-small.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Link style={styles.langButton} screen={'Profile'} params={{}}>
           <Text style={styles.langButtonText}>profile</Text>
         </Link>
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   logo: {
-    width: 56,
+    width: 156,
     height: 56,
   },
   langButton: {
