@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   Dimensions,
-  SafeAreaView,
   Pressable,
   FlatList,
 } from 'react-native';
 import colors from '../../constants/colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const {width} = Dimensions.get('window');
 

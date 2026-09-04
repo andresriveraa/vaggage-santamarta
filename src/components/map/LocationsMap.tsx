@@ -33,8 +33,8 @@ const DETAIL_STRINGS: Record<AppLang, {
 
 // Centro de La Candelaria, Bogotá — región inicial mientras cargan las ubicaciones
 const DEFAULT_REGION = {
-  latitude: 4.6014,
-  longitude: -74.0661,
+  latitude: 4.59819,
+  longitude: -74.076,
   latitudeDelta: 0.01,
   longitudeDelta: 0.01,
 };
@@ -47,7 +47,7 @@ interface LocationsMapProps {
   onGuideToLocation?: (location: StoryLocation) => void;
 }
 
-const LocationsMap = ({
+const   LocationsMap = ({
   currentPosition,
   storyLocations,
   targetLocation,
@@ -155,9 +155,11 @@ const LocationsMap = ({
               )}
             </View>
 
-            <ScrollView style={styles.detailScroll}>
-              <Text style={styles.detailDescription}>{selectedDescription}</Text>
-            </ScrollView>
+            {selectedDescription !== '' && (
+              <ScrollView style={styles.detailScroll}>
+                <Text style={styles.detailDescription}>{selectedDescription}</Text>
+              </ScrollView>
+            )}
 
             {/* Oculto: aquí iba "Reproducir audio", que sintetizaba la
                 descripción con TTS. Vuelve cuando la tarjeta reproduzca el
@@ -185,13 +187,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#e5e5e5',
+    height: '100%'
   },
   map: {
     width: '100%',
     height: '100%',
   },
   detailOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,

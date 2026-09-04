@@ -23,7 +23,7 @@ export const stylesApp = StyleSheet.create({
     backgroundColor: colors.green.background,
   },
   locationMap: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 0,
   },
   topOverlay: {

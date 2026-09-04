@@ -2,8 +2,8 @@ import {useState, useEffect, useRef} from 'react';
 import {Platform, Alert, AppState, Vibration, PermissionsAndroid} from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import {getDistance} from 'geolib';
-import {fetchStoryLocations, type StoryLocation} from './src/services/AirtableService';
-import type {AppLang} from './src/constants/lang';
+import type {StoryLocation} from './src/services/AirtableService';
+import type { CityGuides, IPointsGuide} from './src/services/PurchasesService';
 import {GUIDANCE_MILESTONES} from './src/services/guidance';
 import {
   downloadAudioGuide,
@@ -12,14 +12,17 @@ import {
   stopAudio,
   type CachedAudioGuidePoint,
 } from './src/services/AudioGuideService';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { RootStackParamList } from './src/AppContent';
+import { useAuth } from './src/context/AuthContext';
 
 // La narración es un archivo de audio descargado antes de salir a caminar, no
 // voz sintetizada en el momento. La guía hacia la siguiente parada, en cambio,
 // es visual (mapa, tarjeta de progreso) y háptica (vibración).
 //
-// Las paradas vienen de dos fuentes que solo comparten el nombre: Airtable
-// pone las coordenadas y la descripción, el API pone el audio. El cruce se
-// hace por `title` <-> `stopName`.
+// Las paradas (coordenadas, nombre y audio) salen todas de `guide.points`,
+// ya cargado en el contexto de ciudades — unidas por el `id` numérico del
+// punto. Ya no dependemos de Airtable ni de un fetch propio para el mapa.
 
 export type AudioStatus = 'idle' | 'downloading' | 'ready' | 'error';
 
@@ -50,10 +53,17 @@ const freshGuidance = (): GuidanceProgress => ({
   lastCueAt: 0,
 });
 
-const useMainHook = (lang: AppLang, guideId: string, userId: string | null) => {
+const useMainHook = () => {
+
+  const navigation = useNavigation();
+  const onBack = () => navigation.goBack();
+  const route = useRoute<RouteProp<RootStackParamList, 'MapGuide'>>();
+  const guide: CityGuides | undefined= route.params?.guide;
+  const {user, lang} = useAuth();
+
+
   const [watchId, setWatchId] = useState<number | null>(WATCH_ID_INITIAL);
-  const [currentPosition, setCurrentPosition] =
-    useState<Geolocation.GeoPosition | null>(null);
+  const [currentPosition, setCurrentPosition] = useState<Geolocation.GeoPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [storyLocations, setStoryLocations] = useState<StoryLocation[]>([]);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
@@ -76,6 +86,12 @@ const useMainHook = (lang: AppLang, guideId: string, userId: string | null) => {
   const audioPointsRef = useRef<CachedAudioGuidePoint[]>([]);
   const isPlayingRef = useRef(false);
 
+  const userId = user?.id ?? '';
+  const guideId = guide?.id ?? ''
+  const guidePoints: IPointsGuide[] | undefined = guide?.points;
+
+
+
   useEffect(() => {
     storyLocationsRef.current = storyLocations;
   }, [storyLocations]);
@@ -94,24 +110,29 @@ const useMainHook = (lang: AppLang, guideId: string, userId: string | null) => {
     return () => subscription.remove();
   }, []);
 
-  // Cargar ubicaciones de la guía seleccionada desde Airtable
+  // Construir las paradas del recorrido a partir de `guide.points`, ya
+  // cargado en el contexto de ciudades: no hace falta pedirlo de nuevo.
   useEffect(() => {
-    fetchStoryLocations(guideId)
-      .then(locations => {
-        setStoryLocations(locations);
-        storyLocationsRef.current = locations;
-        guidanceRef.current = freshGuidance();
-        console.log(
-          `[useMain] ${locations.length} ubicaciones cargadas para la guía ${guideId}`,
-        );
-      })
-      .catch(err => {
-        console.warn(
-          '[useMain] Error al cargar ubicaciones desde Airtable:',
-          err,
-        );
-      });
-  }, [guideId]);
+
+    const locations: StoryLocation[] = guidePoints
+      ?.map((point: IPointsGuide)  => ({
+        id: point.id,
+        title: point.stop_name,
+        description: '',
+        description_en: '',
+        latitude: point.latitude,
+        longitude: point.longitude,
+        audioFile: point.audio_url ?? '',
+        played: false,
+      })) ?? [];
+
+    setStoryLocations(locations);
+    storyLocationsRef.current = locations;
+    guidanceRef.current = freshGuidance();
+    console.log(
+      `[useMain] ${locations.length} ubicaciones cargadas para la guía ${guideId}`,
+    );
+  }, [guideId, lang, guidePoints]);
 
   // Lo que ya esté en disco de esta guía, leído sin red. Si el usuario la
   // descargó antes, puede salir a caminar en modo avión sin tocar el botón.
@@ -150,7 +171,7 @@ const useMainHook = (lang: AppLang, guideId: string, userId: string | null) => {
     setAudioStatus('downloading');
     setAudioProgress({completed: 0, total: 0});
     try {
-      const points = await downloadAudioGuide(userId, guideId, lang, (completed, total) =>
+      const points = await downloadAudioGuide(user?.id ?? '', guide?.id ?? '', lang, (completed, total) =>
         setAudioProgress({completed, total}),
       );
       setAudioPoints(points);
@@ -190,7 +211,7 @@ const useMainHook = (lang: AppLang, guideId: string, userId: string | null) => {
   const markArrival = (story: StoryLocation) => {
     Vibration.vibrate(ARRIVAL_VIBRATION);
 
-    const point = audioPointsRef.current.find(p => p.stopName === story.title);
+    const point = audioPointsRef.current.find(p => p.trackId === story.id);
     if (!point?.localPath) {
       console.log(`Llegada a ${story.title}: sin audio, se sigue en silencio`);
       return;
@@ -478,6 +499,16 @@ const useMainHook = (lang: AppLang, guideId: string, userId: string | null) => {
 
   const playedCount = storyLocations.filter(l => l.played).length;
 
+
+  const isTourActive = watchId !== WATCH_ID_INITIAL;
+  const isTourComplete = audioProgress.total > 0 && playedCount === audioProgress.total;
+
+  // El recorrido no arranca hasta tener el audio en disco: salir a caminar con
+  // una guía a medio bajar es justo lo que la descarga previa evita.
+  const isAudioReady =  audioStatus === 'ready';
+  const isDownloading =  audioStatus === 'downloading';
+  const {completed, total} =  audioProgress;
+
   return {
     state: {
       currentPosition,
@@ -500,6 +531,15 @@ const useMainHook = (lang: AppLang, guideId: string, userId: string | null) => {
       // necesita para decir "8 de 10 con audio" sin recorrer la lista.
       audioReadyCount: audioPoints.filter(p => p.localPath !== null).length,
       audioTotalSeconds: audioPoints.reduce((sum, p) => sum + p.durationSeconds, 0),
+
+
+      guide,
+      isTourActive,
+      isTourComplete,
+      isAudioReady,
+      isDownloading,
+      completed,
+      total,
     },
     actions: {
       onStart,
@@ -507,6 +547,8 @@ const useMainHook = (lang: AppLang, guideId: string, userId: string | null) => {
       toggleGuide,
       guideToLocation,
       downloadGuideAudio,
+
+      onBack,
     },
   };
 };

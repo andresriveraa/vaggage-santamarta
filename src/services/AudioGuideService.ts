@@ -16,12 +16,13 @@ const STALE_URL_STATUSES = [400, 401, 403];
 
 export interface AudioGuidePoint {
   trackId: number;
-  /** Igual al `title` de la parada en Airtable: es lo único que une ambas fuentes. */
   stopName: string;
   durationSeconds: number;
   storagePath: string;
   /** Firmada y de vida corta (`expires_in`). No sirve para guardar en disco. */
   audioUrl: string | null;
+  latitude: number;
+  longitude: number;
 }
 
 /**
@@ -43,25 +44,14 @@ interface ApiPoint {
   storage_path: string;
   audio_url: string | null;
   expires_in: number;
+  latitude: number;
+  longitude: number;
 }
 
 interface ApiResponse {
   user_id: string;
   cities: {slug: string; name: string; guides: {id: string; name: string; points: ApiPoint[]}[]}[];
 }
-
-// El API identifica cada guía con un uuid propio, pero la app navega con el
-// "Internal ID" de Airtable (`bog-0102`), que es de donde salen las
-// coordenadas del mapa. Hoy lo único que une ambos mundos es el nombre del
-// archivo, que arranca con ese Internal ID:
-//
-//   bogota/es/bog-0102_plaza-de-bolivar_es.wav
-//
-// Está aislado en una función a propósito: en cuanto el API exponga el Internal
-// ID (o la app navegue con el uuid), esto se reemplaza por comparar ids y se
-// borra de aquí.
-const belongsToGuide = (storagePath: string, guideId: string): boolean =>
-  (storagePath.split('/').pop() ?? '').startsWith(`${guideId}_`);
 
 export const localPathFor = (storagePath: string): string =>
   `${CACHE_ROOT}/${storagePath}`;
@@ -126,23 +116,21 @@ export const fetchAudioGuide = async (
   }
 
   const data: ApiResponse = await response.json();
+  const guide = data.cities.flatMap(city => city.guides).find(g => g.id === guideId);
 
   // El endpoint devuelve todas las ciudades compradas, y hoy además ignora el
   // `?lng`, así que el filtro por idioma se repite aquí. Cuando el API lo
   // respete, este filtro sigue siendo correcto — solo deja de hacer falta.
-  return data.cities
-    .flatMap(city => city.guides)
-    .flatMap(guide => guide.points)
-    .filter(
-      point =>
-        point.language === lang && belongsToGuide(point.storage_path, guideId),
-    )
+  return (guide?.points ?? [])
+    .filter(point => point.language === lang)
     .map(point => ({
       trackId: point.id,
       stopName: point.stop_name,
       durationSeconds: point.duration_seconds,
       storagePath: point.storage_path,
       audioUrl: point.audio_url,
+      latitude: point.latitude,
+      longitude: point.longitude,
     }));
 };
 
@@ -183,6 +171,7 @@ export const downloadAudioGuide = async (
   onProgress?: (completed: number, total: number) => void,
 ): Promise<CachedAudioGuidePoint[]> => {
   const points = await fetchAudioGuide(userId, guideId, lang);
+
   let urlByPath = new Map(points.map(p => [p.storagePath, p.audioUrl]));
 
   const results: CachedAudioGuidePoint[] = [];
@@ -234,6 +223,8 @@ export const downloadAudioGuide = async (
       stopName: point.stopName,
       durationSeconds: point.durationSeconds,
       storagePath: point.storagePath,
+      latitude: point.latitude,
+      longitude: point.longitude,
       localPath,
     });
     onProgress?.(index + 1, points.length);

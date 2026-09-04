@@ -8,6 +8,7 @@ import React, {
 import {Linking} from 'react-native';
 import type {Session, User} from '@supabase/supabase-js';
 import {supabase} from '../services/supabaseClient';
+import { AppLang } from '../constants/lang';
 
 const REDIRECT_URL = 'vaggage://auth/callback';
 
@@ -17,6 +18,9 @@ type AuthContextValue = {
   isLoading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  lang: AppLang,
+  setLang: (e: AppLang) => void;
+  toggleLang: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -24,6 +28,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({children}: {children: React.ReactNode}) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [lang, setLang] = useState<AppLang>('es');
 
   useEffect(() => {
     supabase.auth.getSession().then(({data}) => {
@@ -86,6 +91,10 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
     await supabase.auth.signOut();
   }, []);
 
+  const toggleLang = useCallback(() => {
+      setLang(l => l === 'es' ? 'en' : 'es');
+  }, [setLang]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -94,6 +103,9 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
         isLoading,
         signInWithGoogle,
         signOut,
+        lang,
+        setLang,
+        toggleLang,
       }}>
       {children}
     </AuthContext.Provider>

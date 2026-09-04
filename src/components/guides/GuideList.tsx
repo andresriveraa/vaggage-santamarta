@@ -1,18 +1,18 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   Pressable,
+  SectionList,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import {fetchGuides, type Guide} from '../../services/AirtableService';
-import {fetchPurchasedCities} from '../../services/PurchasesService';
-import {useAuth} from '../../context/AuthContext';
-import type {AppLang} from '../../constants/lang';
+import {useCities} from '../../context/CitiesContext';
 import colors from '../../constants/colors';
+import {useAuth} from '../../context/AuthContext';
+import {Link} from '@react-navigation/native';
+import GuideCard from '../GuideCard/GuideCard';
 
 const COPY = {
   es: {
@@ -33,87 +33,19 @@ const COPY = {
   },
 };
 
-function GuideCard({
-  guide,
-  pointsLabel,
-  onPress,
-}: {
-  guide: Guide;
-  pointsLabel: string;
-  onPress: () => void;
-}) {
-  const place = [guide.city, guide.country].filter(Boolean).join(', ');
+function GuideList() {
+  const auth = useAuth();
 
-  return (
-    <Pressable
-      style={({pressed}) => [styles.card, pressed && styles.cardPressed]}
-      onPress={onPress}>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardName}>{guide.name || guide.id}</Text>
-        {place !== '' && <Text style={styles.cardPlace}>{place}</Text>}
-        <Text style={styles.cardMeta}>
-          {[guide.duration, `${guide.pointsCount} ${pointsLabel}`]
-            .filter(Boolean)
-            .join(' · ')}
-        </Text>
-        <View style={styles.tagsWrapper}>
-          {guide.tags.map((tag, index) => (
-            // Es mejor usar el string del tag como key si es único, o combinarlo con el index
-            <View key={`tag-${index}`} style={styles.tagContainer}>
-              <Text style={styles.tagText}>{tag}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-      {guide.price !== '' && (
-        <View style={styles.priceBadge}>
-          <Text style={styles.priceText}>{guide.price}</Text>
-        </View>
-      )}
-    </Pressable>
-  );
-}
+  const {cities, isLoading, hasError, reload} = useCities();
+  const copy = COPY[auth.lang];
 
-function GuideList({
-  lang,
-  onSelectGuide,
-  onChangeLang,
-}: {
-  lang: AppLang;
-  onSelectGuide: (guideId: string) => void;
-  onChangeLang: () => void;
-}) {
-  const [guides, setGuides] = useState<Guide[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const {user} = useAuth();
-  const copy = COPY[lang];
-
-  const loadGuides = useCallback(() => {
-    if (!user) {
-      return;
-    }
-    setIsLoading(true);
-    setHasError(false);
-    Promise.all([fetchGuides(), fetchPurchasedCities(user.id)])
-      .then(([allGuides, purchases]) => {
-        const purchasedCityIds = new Set(
-          purchases
-            .filter(purchase => purchase.status === 'completed')
-            .map(purchase => purchase.cityId),
-        );
-        setGuides(allGuides.filter(guide => purchasedCityIds.has(guide.cityId)));
-      })
-      .catch(err => {
-        console.warn('[GuideList] Error al cargar guías:', err);
-        setHasError(true);
-      })
-      .finally(() => setIsLoading(false));
-  }, [user]);
-
-  useEffect(() => {
-    loadGuides();
-  }, [loadGuides]);
+  const sections = cities
+    .filter(city => city.guides.length > 0)
+    .map(city => ({
+      title: city.name,
+      key: city.id,
+      data: city.guides,
+    }));
 
   return (
     <View style={styles.container}>
@@ -123,12 +55,16 @@ function GuideList({
           style={styles.logo}
           resizeMode="contain"
         />
-        <Pressable style={styles.langButton} onPress={onChangeLang}>
+        <Pressable style={styles.langButton} onPress={() => auth.toggleLang()}>
           <Text style={styles.langButtonText}>
-            {lang === 'es' ? 'ES' : 'EN'}
+            {auth.lang === 'es' ? 'EN' : 'ES'}
           </Text>
         </Pressable>
+        <Link style={styles.langButton} screen={'Profile'} params={{}}>
+          <Text style={styles.langButtonText}>profile</Text>
+        </Link>
       </View>
+
       <Text style={styles.title}>{copy.title}</Text>
       <Text style={styles.subtitle}>{copy.subtitle}</Text>
 
@@ -139,26 +75,26 @@ function GuideList({
       ) : hasError ? (
         <View style={styles.centerContent}>
           <Text style={styles.emptyText}>{copy.error}</Text>
-          <Pressable style={styles.retryButton} onPress={loadGuides}>
+          <Pressable style={styles.retryButton} onPress={reload}>
             <Text style={styles.retryText}>{copy.retry}</Text>
           </Pressable>
         </View>
       ) : (
-        <FlatList
-          data={guides}
+        <SectionList
+          sections={sections}
           keyExtractor={guide => guide.id}
           contentContainerStyle={styles.listContent}
+          stickySectionHeadersEnabled={false}
           ListEmptyComponent={
             <View style={styles.centerContent}>
               <Text style={styles.emptyText}>{copy.empty}</Text>
             </View>
           }
+          renderSectionHeader={({section}) => (
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+          )}
           renderItem={({item}) => (
-            <GuideCard
-              guide={item}
-              pointsLabel={copy.points}
-              onPress={() => onSelectGuide(item.id)}
-            />
+            <GuideCard guide={item} pointsLabel={copy.points} />
           )}
         />
       )}
@@ -209,7 +145,13 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 40,
-    gap: 14,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.white.primary,
+    marginBottom: 12,
+    marginTop: 8,
   },
   centerContent: {
     flex: 1,
@@ -235,74 +177,6 @@ const styles = StyleSheet.create({
     color: colors.white.primary,
     fontWeight: '600',
     fontSize: 15,
-  },
-  card: {
-    backgroundColor: colors.white.primary,
-    borderRadius: 16,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  cardPressed: {
-    opacity: 0.85,
-    transform: [{scale: 0.98}],
-  },
-  cardInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  cardName: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: colors.green.textPrimary,
-  },
-  cardPlace: {
-    fontSize: 14,
-    color: colors.green.textSecondary,
-    fontWeight: '600',
-  },
-  cardMeta: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  priceBadge: {
-    backgroundColor: colors.green.background,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginLeft: 12,
-  },
-  priceText: {
-    color: colors.white.primary,
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-    tagsWrapper: {
-    flexDirection: 'row', // Los coloca uno al lado del otro
-    flexWrap: 'wrap',     // Si no caben en una línea, bajan a la siguiente
-    gap: 8,               // Espaciado entre tags (funciona en versiones recientes de RN)
-    marginTop: 8,         // Separación del texto de arriba ("10 puntos")
-  },
-  // Contenedor individual de cada tag (Opción 2 de la respuesta anterior)
-  tagContainer: {
-    backgroundColor: '#F0F2F5',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    // marginBottom: 8, // Descomenta esto si tu versión de RN no soporta 'gap' en tagsWrapper
-    // marginRight: 8,  // Descomenta esto si tu versión de RN no soporta 'gap' en tagsWrapper
-  },
-  // El texto por dentro
-  tagText: {
-    color: '#4A5568', // Un gris oscuro para buen contraste
-    fontSize: 12,
-    fontWeight: '600',
   },
 });
 

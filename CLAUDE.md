@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Vaggage is a React Native (0.76.5, RN CLI, not Expo) mobile app that delivers offline, GPS-triggered audio walking tours. A user picks a language and a guide, walks a route, and the app narrates locations via on-device TTS as they get physically close to each stop.
+Vaggage is a React Native (0.86.3, RN CLI, not Expo) mobile app that delivers offline, GPS-triggered audio walking tours. A user picks a language and a guide, walks a route, and the app narrates locations via on-device TTS as they get physically close to each stop.
 
 ## Commands
 
